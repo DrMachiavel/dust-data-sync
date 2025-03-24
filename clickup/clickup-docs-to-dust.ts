@@ -66,17 +66,20 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
       );
       
       const pages = response.data;
-      console.log(`Retrieved ${pages.length} immediate pages from ClickUp`);
+      console.log(`Retrieved ${pages.length} pages from ClickUp doc ${docId}`);
       
-      // Recursively fetch subpages
+      // Process current pages
       for (const page of pages) {
+        if (page.content && page.content.trim() !== '' && !page.archived) {
+          await upsertToDustDatasource(page);
+        }
+        
+        // Recursively fetch and process subpages
         if (page.pages && page.pages.length > 0) {
           try {
-            const subPages = await getClickUpPagesWithRetry(page.id);
-            page.pages = subPages;
+            await getClickUpPagesWithRetry(page.id);
           } catch (error) {
             console.error(`Failed to fetch subpages for ${page.id}:`, error.message);
-            page.pages = [];
           }
         }
       }
@@ -219,8 +222,7 @@ async function processPages(pages: ClickUpPage[], batchSize = 5) {
 
 async function main() {
   try {
-    const pages = await getClickUpPages(CLICKUP_DOC_ID!);
-    await processPages(pages);
+    await getClickUpPages(CLICKUP_DOC_ID!);
     console.log('All pages processed successfully.');
   } catch (error) {
     console.error('An error occurred:', error);
