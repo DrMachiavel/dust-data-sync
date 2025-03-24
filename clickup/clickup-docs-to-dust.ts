@@ -16,7 +16,7 @@ const DUST_WORKSPACE_ID = process.env.DUST_WORKSPACE_ID;
 const DUST_DATASOURCE_ID = process.env.DUST_DATASOURCE_ID;
 const DUST_VAULT_ID = process.env.DUST_VAULT_ID;
 
-console.log('[Environment Variables]:', {CLICKUP_API_KEY, CLICKUP_WORKSPACE_ID, CLICKUP_DOC_ID, DUST_API_KEY, DUST_WORKSPACE_ID, DUST_DATASOURCE_ID, DUST_VAULT_ID});
+console.log('[Environment Variables]: Loaded');
 
 const missingEnvVars = [
   ['CLICKUP_API_KEY', CLICKUP_API_KEY],
@@ -65,7 +65,7 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
         `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
         {
           params: {
-            max_page_depth: -5,
+            max_page_depth: 1,
             content_format: 'text/md'
           }
         }
