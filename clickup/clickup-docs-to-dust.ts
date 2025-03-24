@@ -59,37 +59,18 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
         `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
         {
           params: {
-            max_page_depth: 1, // Only get immediate children
+            max_page_depth: -1,
             content_format: 'text/md'
           }
         }
       );
-      
-      const pages = response.data;
-      console.log(`Retrieved ${pages.length} pages from ClickUp doc ${docId}`);
-      
-      // Process current pages
-      for (const page of pages) {
-        if (page.content && page.content.trim() !== '' && !page.archived) {
-          await upsertToDustDatasource(page);
-        }
-        
-        // Recursively fetch and process subpages
-        if (page.pages && page.pages.length > 0) {
-          try {
-            await getClickUpPagesWithRetry(page.id);
-          } catch (error) {
-            console.error(`Failed to fetch subpages for ${page.id}:`, error.message);
-          }
-        }
-      }
-      
-      return pages;
+      console.log(`Retrieved ${response.data.length} pages from ClickUp`);
+      return response.data;
     } catch (error) {
       lastError = error;
       console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
       }
     }
   }
@@ -188,41 +169,28 @@ ${page.content}
   }
 }
 
-async function processPages(pages: ClickUpPage[], batchSize = 5) {
-  const flattenPages = (pages: ClickUpPage[]): ClickUpPage[] => {
-    let result: ClickUpPage[] = [];
-    for (const page of pages) {
-      if (page.content && page.content.trim() !== '' && !page.archived) {
-        result.push(page);
-      }
-      if (page.pages && page.pages.length > 0) {
-        result = result.concat(flattenPages(page.pages));
+async function processPages(pages: ClickUpPage[]) {
+  for (const page of pages) {
+
+    // skip empty pages
+    if (page.content && page.content.trim() !== '') {
+      if (!page.archived) {
+        await upsertToDustDatasource(page);
+      } else {
+        console.log(`Skipping archived page: ${page.name}`);
       }
     }
-    return result;
-  };
 
-  const allPages = flattenPages(pages);
-  console.log(`Total pages to process: ${allPages.length}`);
-
-  for (let i = 0; i < allPages.length; i += batchSize) {
-    const batch = allPages.slice(i, i + batchSize);
-    console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(allPages.length/batchSize)}`);
-    
-    await Promise.all(
-      batch.map(page => upsertToDustDatasource(page))
-    );
-    
-    // Wait a bit between batches to avoid overwhelming the API
-    if (i + batchSize < allPages.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (page.pages && page.pages.length > 0) {
+      await processPages(page.pages);
     }
   }
 }
 
 async function main() {
   try {
-    await getClickUpPages(CLICKUP_DOC_ID!);
+    const pages = await getClickUpPages(CLICKUP_DOC_ID!);
+    await processPages(pages);
     console.log('All pages processed successfully.');
   } catch (error) {
     console.error('An error occurred:', error);
