@@ -37,7 +37,44 @@ const clickupApi = axios.create({
     'Content-Type': 'application/json'
   },
   maxContentLength: Infinity,
-  maxBodyLength: Infinity
+  maxBodyLength: Infinity,
+  timeout: 30000, // 30 second timeout
+  timeoutErrorMessage: 'Request timed out'
+});
+
+// Add rate limiting for ClickUp API
+const clickupLimiter = new Bottleneck({
+  minTime: 1000, // 1 second between requests
+  maxConcurrent: 1
+});
+
+// Wrap getClickUpPages with retry logic and rate limiting
+const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Promise<ClickUpPage[]> => {
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response: AxiosResponse<ClickUpPage[]> = await clickupApi.get(
+        `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
+        {
+          params: {
+            max_page_depth: -1,
+            content_format: 'text/md'
+          }
+        }
+      );
+      console.log(`Retrieved ${response.data.length} pages from ClickUp`);
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+      }
+    }
+  }
+  throw lastError;
 });
 
 clickupApi.interceptors.response.use(
@@ -97,19 +134,9 @@ function generateSlug(name: string): string {
 
 async function getClickUpPages(docId: string): Promise<ClickUpPage[]> {
   try {
-    const response: AxiosResponse<ClickUpPage[]> = await clickupApi.get(
-      `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
-      {
-        params: {
-          max_page_depth: -1,
-          content_format: 'text/md'
-        }
-      }
-    );
-    console.log(`Retrieved ${response.data.length} pages from ClickUp`);
-    return response.data;
+    return await getClickUpPagesWithRetry(docId);
   } catch (error) {
-    console.error('Error fetching ClickUp pages:', error);
+    console.error('Error fetching ClickUp pages after all retries:', error);
     throw error;
   }
 }
