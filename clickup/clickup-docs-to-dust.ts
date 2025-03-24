@@ -177,7 +177,7 @@ ${page.content}
       `/w/${DUST_WORKSPACE_ID}/vaults/${DUST_VAULT_ID}/data_sources/${DUST_DATASOURCE_ID}/documents/${documentId}`,
       {
         text: content,
-        source_url: `https://app.clickup.com/${CLICKUP_WORKSPACE_ID}/v/dc/${CLICKUP_DOC_ID}/${page.id}`
+        source_url: `https://app.clickup.com/${CLICKUP_WORKSPACE_ID}/v/dc/${page.doc_id}/${page.id}`
       }
     );
     console.log(`[upsertToDustDatasource] Upserted page '${documentId}' to Dust datasource`);
