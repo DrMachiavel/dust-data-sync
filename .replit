@@ -1,0 +1,9 @@
+modules = ["nodejs-20", "web"]
+run = "npm run import"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "cd clickup && npm run import"]
+deploymentTarget = "scheduled"
