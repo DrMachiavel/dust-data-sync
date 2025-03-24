@@ -59,7 +59,7 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
         `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
         {
           params: {
-            max_page_depth: -1,
+            max_page_depth: -5,
             content_format: 'text/md'
           }
         }
