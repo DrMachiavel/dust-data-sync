@@ -169,20 +169,34 @@ ${page.content}
   }
 }
 
-async function processPages(pages: ClickUpPage[]) {
-  for (const page of pages) {
-
-    // skip empty pages
-    if (page.content && page.content.trim() !== '') {
-      if (!page.archived) {
-        await upsertToDustDatasource(page);
-      } else {
-        console.log(`Skipping archived page: ${page.name}`);
+async function processPages(pages: ClickUpPage[], batchSize = 5) {
+  const flattenPages = (pages: ClickUpPage[]): ClickUpPage[] => {
+    let result: ClickUpPage[] = [];
+    for (const page of pages) {
+      if (page.content && page.content.trim() !== '' && !page.archived) {
+        result.push(page);
+      }
+      if (page.pages && page.pages.length > 0) {
+        result = result.concat(flattenPages(page.pages));
       }
     }
+    return result;
+  };
 
-    if (page.pages && page.pages.length > 0) {
-      await processPages(page.pages);
+  const allPages = flattenPages(pages);
+  console.log(`Total pages to process: ${allPages.length}`);
+
+  for (let i = 0; i < allPages.length; i += batchSize) {
+    const batch = allPages.slice(i, i + batchSize);
+    console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(allPages.length/batchSize)}`);
+    
+    await Promise.all(
+      batch.map(page => upsertToDustDatasource(page))
+    );
+    
+    // Wait a bit between batches to avoid overwhelming the API
+    if (i + batchSize < allPages.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 }
