@@ -8,7 +8,7 @@ dotenv.config();
 // source
 const CLICKUP_API_KEY = process.env.CLICKUP_API_KEY;
 const CLICKUP_WORKSPACE_ID = process.env.CLICKUP_WORKSPACE_ID;
-const CLICKUP_DOC_ID = process.env.CLICKUP_DOC_ID;
+// Remove single doc ID since we'll fetch all docs
 
 // destination
 const DUST_API_KEY = process.env.DUST_API_KEY;
@@ -21,7 +21,7 @@ console.log('[Environment Variables]: Loaded');
 const missingEnvVars = [
   ['CLICKUP_API_KEY', CLICKUP_API_KEY],
   ['CLICKUP_WORKSPACE_ID', CLICKUP_WORKSPACE_ID],
-  ['CLICKUP_DOC_ID', CLICKUP_DOC_ID],
+  
   ['DUST_API_KEY', DUST_API_KEY],
   ['DUST_WORKSPACE_ID', DUST_WORKSPACE_ID],
   ['DUST_DATASOURCE_ID', DUST_DATASOURCE_ID],
@@ -206,13 +206,31 @@ async function processPages(pages: ClickUpPage[]) {
   }
 }
 
+async function getAllDocs(): Promise<any[]> {
+  console.log('[getAllDocs] Fetching all docs from workspace');
+  try {
+    const response = await clickupApi.get(`/workspaces/${CLICKUP_WORKSPACE_ID}/docs`);
+    console.log(`[getAllDocs] Found ${response.data.docs.length} docs`);
+    return response.data.docs;
+  } catch (error) {
+    console.error('[getAllDocs] Error fetching docs:', error);
+    throw error;
+  }
+}
+
 async function main() {
   console.log('[main] Starting main function');
   try {
-    const pages = await getClickUpPages(CLICKUP_DOC_ID!);
-    console.log(`[main] Retrieved ${pages.length} pages from ClickUp.`);
-    await processPages(pages);
-    console.log('[main] All pages processed successfully.');
+    const docs = await getAllDocs();
+    console.log(`[main] Processing ${docs.length} docs`);
+    
+    for (const doc of docs) {
+      console.log(`[main] Processing doc: ${doc.name} (${doc.id})`);
+      const pages = await getClickUpPages(doc.id);
+      await processPages(pages);
+    }
+    
+    console.log('[main] All docs processed successfully.');
   } catch (error) {
     console.error('[main] An error occurred:', error);
   }
