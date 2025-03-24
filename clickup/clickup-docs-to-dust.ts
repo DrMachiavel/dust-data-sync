@@ -59,18 +59,34 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
         `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
         {
           params: {
-            max_page_depth: -1,
+            max_page_depth: 1, // Only get immediate children
             content_format: 'text/md'
           }
         }
       );
-      console.log(`Retrieved ${response.data.length} pages from ClickUp`);
-      return response.data;
+      
+      const pages = response.data;
+      console.log(`Retrieved ${pages.length} immediate pages from ClickUp`);
+      
+      // Recursively fetch subpages
+      for (const page of pages) {
+        if (page.pages && page.pages.length > 0) {
+          try {
+            const subPages = await getClickUpPagesWithRetry(page.id);
+            page.pages = subPages;
+          } catch (error) {
+            console.error(`Failed to fetch subpages for ${page.id}:`, error.message);
+            page.pages = [];
+          }
+        }
+      }
+      
+      return pages;
     } catch (error) {
       lastError = error;
       console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       }
     }
   }
