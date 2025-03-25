@@ -41,8 +41,12 @@ const clickupApi = axios.create({
   },
   maxContentLength: Infinity,
   maxBodyLength: Infinity,
-  timeout: 30000, // 30 second timeout
-  timeoutErrorMessage: 'Request timed out'
+  timeout: 60000, // 60 second timeout
+  timeoutErrorMessage: 'Request timed out',
+  validateStatus: (status) => status < 500, // Reject only if status >= 500
+  maxRedirects: 5,
+  decompress: true,
+  keepAlive: true
 });
 
 // Add rate limiting for ClickUp API
@@ -76,8 +80,9 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
       lastError = error;
       console.error(`[getClickUpPagesWithRetry] Attempt ${attempt}/${maxRetries} failed:`, error.message);
       if (attempt < maxRetries) {
-        console.log(`[getClickUpPagesWithRetry] Retrying in ${2000 * attempt}ms`);
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+        const delay = Math.min(10000, 2000 * Math.pow(2, attempt - 1)); // Exponential backoff with max 10s
+        console.log(`[getClickUpPagesWithRetry] Retrying in ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
