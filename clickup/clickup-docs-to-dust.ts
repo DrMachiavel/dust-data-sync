@@ -77,9 +77,17 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
           }
         }
       );
+      if (!response.data) {
+        console.log(`[getClickUpPagesWithRetry] No data returned for doc ${docId}, skipping...`);
+        return [];
+      }
       console.log(`[getClickUpPagesWithRetry] Retrieved ${response.data.length} pages from ClickUp`);
       return response.data;
     } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log(`[getClickUpPagesWithRetry] Doc ${docId} not found, skipping...`);
+        return [];
+      }
       lastError = error;
       console.error(`[getClickUpPagesWithRetry] Attempt ${attempt}/${maxRetries} failed:`, error.message);
       if (attempt < maxRetries) {
