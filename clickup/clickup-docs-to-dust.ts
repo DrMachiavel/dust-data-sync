@@ -51,8 +51,11 @@ const clickupApi = axios.create({
 
 // Add rate limiting for ClickUp API
 const clickupLimiter = new Bottleneck({
-  minTime: 1000, // 1 second between requests
-  maxConcurrent: 1
+  minTime: 2000, // 2 seconds between requests
+  maxConcurrent: 1,
+  reservoir: 30, // Allow 30 requests
+  reservoirRefreshAmount: 30, // Refill 30 tokens
+  reservoirRefreshInterval: 60 * 1000 // Refill every 1 minute
 });
 
 // Wrap getClickUpPages with retry logic and rate limiting
@@ -106,8 +109,11 @@ clickupApi.interceptors.response.use(
 
 // Create a Bottleneck limiter for Dust API
 const dustLimiter = new Bottleneck({
-  minTime: 500, // 500ms between requests
-  maxConcurrent: 1, // Only 1 request at a time
+  minTime: 1000, // 1 second between requests
+  maxConcurrent: 1,
+  reservoir: 60, // Allow 60 requests
+  reservoirRefreshAmount: 60, // Refill 60 tokens
+  reservoirRefreshInterval: 60 * 1000 // Refill every 1 minute
 });
 
 const dustApi = axios.create({
