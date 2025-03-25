@@ -167,11 +167,15 @@ async function getClickUpPages(docId: string): Promise<ClickUpPage[]> {
   console.log(`[getClickUpPages] Fetching pages for docId: ${docId}`);
   try {
     const pages = await getClickUpPagesWithRetry(docId);
+    if (!pages) {
+      console.log(`[getClickUpPages] No pages found for docId: ${docId}`);
+      return [];
+    }
     console.log(`[getClickUpPages] Retrieved ${pages.length} pages`);
     return pages;
   } catch (error) {
     console.error(`[getClickUpPages] Error fetching ClickUp pages:`, error);
-    throw error;
+    return [];
   }
 }
 
