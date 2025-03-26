@@ -2,6 +2,8 @@
 
 This script is designed to import data from HubSpot to Dust datasources. It fetches recently updated companies from HubSpot, along with their associated contacts and deals, and upserts this information into a specified Dust datasource.
 
+Everyday at 3am, updates the last 500 updated companies from Hubspot to Dust
+
 ## Usage example
 
 ```
