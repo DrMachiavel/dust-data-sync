@@ -6,6 +6,7 @@ Supported data types:
 ### Doc pages
 The script imports doc pages from ClickUp.
 Fetches all documents from a workspace and upsert to Dust.
+Deployed on Replit.
 
 ## Installation
 
