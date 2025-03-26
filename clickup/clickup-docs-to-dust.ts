@@ -68,24 +68,15 @@ const getClickUpPagesWithRetry = clickupLimiter.wrap(async (docId: string): Prom
     console.log(`[getClickUpPagesWithRetry] Attempt ${attempt}/${maxRetries}`);
     try {
       console.log(`[getClickUpPagesWithRetry] Making API request to ClickUp`);
-      const response = await clickupApi.get(
+      const response: AxiosResponse<ClickUpPage[]> = await clickupApi.get(
         `/workspaces/${CLICKUP_WORKSPACE_ID}/docs/${docId}/pages`,
         {
           params: {
-            max_page_depth: -1, // Get all pages at once
+            max_page_depth: 1,
             content_format: 'text/md'
-          },
-          validateStatus: function (status) {
-            return status < 500; // Accept any status less than 500
           }
         }
-      ).catch(error => {
-        if (error.response) {
-          console.log(`[getClickUpPagesWithRetry] Response error status: ${error.response.status}`);
-          return { data: [] };
-        }
-        throw error;
-      });
+      );
       if (!response.data) {
         console.log(`[getClickUpPagesWithRetry] No data returned for doc ${docId}, skipping...`);
         return [];
@@ -219,22 +210,15 @@ ${page.content}
 }
 
 async function processPages(pages: ClickUpPage[]) {
-  if (!Array.isArray(pages)) {
-    console.log(`[processPages] No valid pages to process`);
-    return;
-  }
-  
   console.log(`[processPages] Processing ${pages.length} pages`);
   for (const page of pages) {
-    if (!page || typeof page !== 'object') continue;
-    
-    console.log(`[processPages] Processing page: ${page.name || 'Unnamed'}`);
+    console.log(`[processPages] Processing page: ${page.name}`);
     // skip empty pages
-    if (page.content && typeof page.content === 'string' && page.content.trim() !== '') {
+    if (page.content && page.content.trim() !== '') {
       if (!page.archived) {
         await upsertToDustDatasource(page);
       } else {
-        console.log(`[processPages] Skipping archived page: ${page.name || 'Unnamed'}`);
+        console.log(`[processPages] Skipping archived page: ${page.name}`);
       }
     }
 
