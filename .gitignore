@@ -139,3 +139,7 @@ dist
 
 #replit
 .replit
+
+#assistant-replit
+attached_assets
+*.attached_assets
