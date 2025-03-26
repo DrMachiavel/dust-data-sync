@@ -1,9 +1,21 @@
 modules = ["nodejs-20", "web"]
-run = "npm run import"
+run = "npm run docs"
 
 [nix]
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "cd clickup && npm run import"]
+run = ["sh", "-c", "cd clickup && npm run docs"]
 deploymentTarget = "scheduled"
+
+[workflows]
+runButton = "ClickUp to Dust"
+
+[[workflows.workflow]]
+name = "ClickUp to Dust"
+author = 28822176
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd clickup && npm run docs"
