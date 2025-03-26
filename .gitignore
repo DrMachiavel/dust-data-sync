@@ -7,6 +7,10 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+#assistant-replit
+attached_assets
+*.attached_assets
+
 # node modules
 node_modules
 package-lock.json
